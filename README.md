@@ -1,54 +1,18 @@
-# Afrolivestream
+# Afrolivestream Backend Foundation v1
 
-A web-first prototype for African stories, live radio, authorised live TV, video on demand, podcasts, education and community media.
+This is the next implementation milestone for the existing Afrolivestream React/Vite repository. It is packaged separately so it can be reviewed and copied into the project without overwriting the existing frontend.
 
-## Current prototype
+## Copy into the existing repository
 
-- Responsive dark streaming-style interface
-- Sample catalogue with search and category filtering
-- Content detail modal and save-to-list interaction
-- Creator Studio preview with catalogue/rights review status
-- Demo states for Live TV and Radio until authorised stream sources are configured
+Copy the `server/` directory into the root of `Sam-droid82-afrolivemedia`, and copy `docs/BACKEND_V1.md` into its `docs/` directory. Do not replace the frontend files.
 
-**Important:** this is a frontend prototype, not a production streaming service. Authentication, API, database, real playback, analytics, and production admin permissions are not yet implemented. Sample artwork loads from Unsplash.
+Then follow `docs/BACKEND_V1.md` to configure PostgreSQL and run the API.
 
-## Run locally
+## Current milestone status
 
-Requirements: Node.js 20 or later.
-
-```bash
-npm install
-npm run dev
-```
-
-For a production build:
-
-```bash
-npm run build
-npm run preview
-```
-
-## Next implementation milestones
-
-1. Connect a backend API and PostgreSQL database.
-2. Add authentication, role-based access and admin MFA.
-3. Implement rights records and publishing checks.
-4. Configure authorised HLS/video and audio streams.
-5. Add monitoring, backups, privacy review and deployment.
-6. Build the Android client against the stable API.
-
-## Content rights
-
-Only publish content owned by the platform or covered by written online distribution permission. Free-to-air availability does not automatically grant online rebroadcast rights. Do not commit credentials, API keys, private stream URLs, or user data to the repository.
-
-## Suggested structure
-
-```text
-src/
-  App.tsx
-  main.tsx
-  styles.css
-docs/
-  PRODUCT_SPEC.md
-  CONTENT_RIGHTS.md
-```
+- API foundation: implemented in this package
+- PostgreSQL schema: implemented in this package
+- Local syntax checks: see `server/npm run check`
+- GitHub commit: not applied by this package
+- Cloud database/hosting: not provisioned
+- Authentication, admin permissions, real playback and production deployment: next milestones
