@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Search, Play, Radio, Tv, Clapperboard, Headphones, GraduationCap,
   Users, Menu, X, ChevronRight, ArrowUpRight, Sparkles, ShieldCheck,
@@ -6,7 +6,7 @@ import {
 } from 'lucide-react'
 
 type Item = {
-  id: number
+  id: string | number
   title: string
   category: string
   type: string
@@ -16,7 +16,7 @@ type Item = {
   duration?: string
 }
 
-const items: Item[] = [
+const SAMPLE_ITEMS: Item[] = [
   {
     id: 1, title: 'The Sound of Home', category: 'Culture', type: 'Documentary',
     description: 'A journey through the people, places and rhythms shaping a new generation of African music.',
@@ -71,7 +71,52 @@ function App() {
   const [selected, setSelected] = useState<Item | null>(null)
   const [showMenu, setShowMenu] = useState(false)
   const [showAdmin, setShowAdmin] = useState(false)
-  const [saved, setSaved] = useState<number[]>([])
+  const [saved, setSaved] = useState<Array<string | number>>([])
+const [items, setItems] = useState<Item[]>(SAMPLE_ITEMS)
+const [channels, setChannels] = useState<Array<{ id: string; name: string; description: string; channel_type: string }>>([])
+const [apiStatus, setApiStatus] = useState('loading')
+
+useEffect(() => {
+  const apiBase = 'https://afrolivestream-api.onrender.com'
+
+  async function loadData() {
+    try {
+      const [catalogResponse, channelsResponse] = await Promise.all([
+        fetch(`${apiBase}/api/catalog`),
+        fetch(`${apiBase}/api/channels`)
+      ])
+
+      if (!catalogResponse.ok || !channelsResponse.ok) {
+        throw new Error('API connection failed')
+      }
+
+      const catalog = await catalogResponse.json()
+      const channelData = await channelsResponse.json()
+
+      const databaseItems: Item[] = (catalog.items || []).map((entry: any, index: number) => ({
+        id: entry.id,
+        title: entry.title,
+        category: entry.category,
+        type: entry.content_type,
+        description: entry.description || '',
+        image: entry.artwork_url || SAMPLE_ITEMS[index % SAMPLE_ITEMS.length].image,
+        label: entry.is_featured ? 'FEATURED' : 'AFROLIVESTREAM',
+        duration: entry.duration_seconds
+          ? `${Math.round(entry.duration_seconds / 60)} min`
+          : undefined
+      }))
+
+      setItems(databaseItems.length ? databaseItems : SAMPLE_ITEMS)
+      setChannels(channelData.channels || [])
+      setApiStatus(databaseItems.length ? 'connected' : 'empty')
+    } catch (error) {
+      console.error('Afrolivestream API error:', error)
+      setApiStatus('error')
+    }
+  }
+
+  loadData()
+}, [])
 
   const filteredItems = useMemo(() => {
     const term = search.trim().toLowerCase()
@@ -90,7 +135,7 @@ function App() {
     })
   }, [search, activeCategory])
 
-  const toggleSaved = (id: number) => {
+  const toggleSaved = (id: string | number) => {
     setSaved(current => current.includes(id) ? current.filter(x => x !== id) : [...current, id])
   }
 
@@ -175,7 +220,20 @@ function App() {
           {(activeCategory === 'Live TV' || activeCategory === 'Radio') && (
             <section className="live-notice">
               <div className="live-notice-icon">{activeCategory === 'Radio' ? <Radio /> : <Tv />}</div>
-              <div><strong>{activeCategory === 'Radio' ? 'Radio directory' : 'Live TV directory'}</strong><p>{activeCategory === 'Radio' ? 'Authorised radio streams will appear here when configured.' : 'Live channels will appear here after their online distribution rights and stream sources are verified.'}</p></div>
+              <div>
+  <strong>{activeCategory === 'Radio' ? 'Radio directory' : 'Live TV directory'}</strong>
+  <p>
+    {channels.filter(channel =>
+      channel.channel_type === (activeCategory === 'Radio' ? 'radio' : 'live_tv')
+    ).length > 0
+      ? channels.filter(channel =>
+          channel.channel_type === (activeCategory === 'Radio' ? 'radio' : 'live_tv')
+        ).map(channel => channel.name).join(' · ')
+      : activeCategory === 'Radio'
+        ? 'No active radio channels published yet.'
+        : 'No active TV channels published yet.'}
+  </p>
+</div>
               <span className="demo-pill">SETUP REQUIRED</span>
             </section>
           )}
