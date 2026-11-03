@@ -5,7 +5,8 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import pg from 'pg';
 import apiRoutes from './routes.js';
-
+import cookieParser from 'cookie-parser';
+import adminAuthRoutes from './auth.js';
 const { Pool } = pg;
 const app = express();
 const port = Number.parseInt(process.env.PORT || '4000', 10);
@@ -13,7 +14,7 @@ const port = Number.parseInt(process.env.PORT || '4000', 10);
 app.disable('x-powered-by');
 app.use(helmet());
 app.use(express.json({ limit: '100kb' }));
-
+app.use(cookieParser());
 const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173')
   .split(',').map((origin) => origin.trim()).filter(Boolean);
 app.use(cors({
@@ -22,9 +23,9 @@ app.use(cors({
     if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
     return callback(new Error('Origin not allowed by CORS'));
   },
-  methods: ['GET', 'HEAD', 'OPTIONS'],
+  methods: ['GET', 'POST', 'HEAD', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+  credentials: true,
 app.use('/api', rateLimit({ windowMs: 60_000, limit: 120, standardHeaders: 'draft-7', legacyHeaders: false }));
 
 let pool = null;
@@ -42,6 +43,7 @@ app.locals.db = pool;
 
 app.get('/', (_req, res) => res.json({ name: 'Afrolivestream API', version: '0.1.0', docs: '/api/health' }));
 app.use('/api', apiRoutes);
+app.use('/api/admin', adminAuthRoutes);
 app.use((_req, res) => res.status(404).json({ error: 'not_found', message: 'Endpoint not found.' }));
 app.use((error, _req, res, _next) => {
   if (error.message === 'Origin not allowed by CORS') {
