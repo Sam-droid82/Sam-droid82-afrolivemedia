@@ -23,9 +23,11 @@ app.use(cors({
     if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
     return callback(new Error('Origin not allowed by CORS'));
   },
-  methods: ['GET', 'POST', 'HEAD', 'OPTIONS'],
+    methods: ['GET', 'POST', 'HEAD', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
+}));
+
 app.use('/api', rateLimit({ windowMs: 60_000, limit: 120, standardHeaders: 'draft-7', legacyHeaders: false }));
 
 let pool = null;
