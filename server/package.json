@@ -1,16 +1,21 @@
+
 {
   "name": "afrolivestream-api",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "description": "API foundation for the Afrolivestream platform",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
     "check": "node --check src/index.js && node --check src/routes.js"
   },
   "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
