@@ -202,5 +202,47 @@ router.post('/logout', checkOrigin, async (req, res, next) => {
     next(error);
   }
 });
+// Create a one-time administrator setup link
+router.post('/setup/create-link', async (req, res, next) => {
+  const db = getDb(req);
+  const setupSecret = req.get('x-setup-secret');
 
+  if (
+    !process.env.ADMIN_SETUP_SECRET ||
+    !setupSecret ||
+    setupSecret !== process.env.ADMIN_SETUP_SECRET
+  ) {
+    return res.status(403).json({ error: 'unauthorized' });
+  }
+
+  if (!db) {
+    return res.status(503).json({ error: 'database_unavailable' });
+  }
+
+  try {
+    const admins = await db.query(
+      'SELECT id FROM admin_users LIMIT 1'
+    );
+
+    if (admins.rowCount > 0) {
+      return res.status(409).json({ error: 'admin_already_exists' });
+    }
+
+    const token = crypto.randomBytes(32).toString('base64url');
+
+    await db.query(
+      `INSERT INTO admin_setup_tokens (token_hash, expires_at)
+       VALUES ($1, NOW() + INTERVAL '30 minutes')`,
+      [hashToken(token)]
+    );
+
+    return res.json({
+      success: true,
+      setupToken: token,
+      expiresInMinutes: 30
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 export default router;
