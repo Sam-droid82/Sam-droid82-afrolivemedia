@@ -64,7 +64,101 @@ const categories = [
   { name: 'Community', icon: Users },
   { name: 'Education', icon: GraduationCap },
 ]
+function AdminSetupPage() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [message, setMessage] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [completed, setCompleted] = useState(false)
 
+  const token = new URLSearchParams(window.location.search).get('token')
+
+  async function handleSetup(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setMessage('')
+
+    if (!token) {
+      setMessage('Setup link is missing or invalid.')
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      const response = await fetch(
+        'https://afrolivestream-api.onrender.com/api/admin/setup/complete',
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, email, password })
+        }
+      )
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || data.error || 'Setup failed.')
+      }
+
+      setCompleted(true)
+      setMessage('Your administrator account has been created successfully.')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Setup failed.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <main style={{
+      minHeight: '100vh',
+      display: 'grid',
+      placeItems: 'center',
+      background: '#101116',
+      color: 'white',
+      padding: '24px'
+    }}>
+      <form onSubmit={handleSetup} style={{
+        width: '100%',
+        maxWidth: '420px',
+        display: 'grid',
+        gap: '16px',
+        padding: '32px',
+        background: '#1c1e27',
+        borderRadius: '16px'
+      }}>
+        <h1>Afrolivestream Admin Setup</h1>
+        <p>Create your first administrator account.</p>
+
+        <label>Email address</label>
+        <input
+          type="email"
+          required
+          value={email}
+          onChange={event => setEmail(event.target.value)}
+          placeholder="Your email address"
+        />
+
+        <label>Password (minimum 12 characters)</label>
+        <input
+          type="password"
+          required
+          minLength={12}
+          value={password}
+          onChange={event => setPassword(event.target.value)}
+          placeholder="Create a strong password"
+        />
+
+        <button type="submit" disabled={loading || completed || !token}>
+          {loading ? 'Creating account...' : 'Create Administrator Account'}
+        </button>
+
+        {message && <p role="status">{message}</p>}
+      </form>
+    </main>
+  )
+}
 function App() {
   const [search, setSearch] = useState('')
   const [activeCategory, setActiveCategory] = useState('For You')
@@ -138,7 +232,9 @@ useEffect(() => {
   const toggleSaved = (id: string | number) => {
     setSaved(current => current.includes(id) ? current.filter(x => x !== id) : [...current, id])
   }
-
+if (window.location.pathname === '/admin/setup') {
+  return <AdminSetupPage />
+}
   return (
     <div className="app-shell">
       <header className="topbar">
