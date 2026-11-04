@@ -168,7 +168,7 @@ function App() {
   const [saved, setSaved] = useState<Array<string | number>>([])
 const [items, setItems] = useState<Item[]>(SAMPLE_ITEMS)
 const [channels, setChannels] = useState<Array<{ id: string; name: string; description: string; channel_type: string }>>([])
-const [apiStatus, setApiStatus] = useState('loading')
+const [, setApiStatus] = useState('loading')
 
 useEffect(() => {
   const apiBase = 'https://afrolivestream-api.onrender.com'
