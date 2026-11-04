@@ -245,4 +245,99 @@ router.post('/setup/create-link', async (req, res, next) => {
     next(error);
   }
 });
+// Complete first administrator setup using a one-time token
+router.post('/setup/complete', checkOrigin, async (req, res, next) => {
+  const db = getDb(req);
+
+  const token = String(req.body?.token || '');
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  const password = String(req.body?.password || '');
+
+  if (!db) {
+    return res.status(503).json({ error: 'database_unavailable' });
+  }
+
+  if (
+    !token ||
+    token.length > 200 ||
+    email.length > 254 ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
+    password.length < 12 ||
+    password.length > 200
+  ) {
+    return res.status(400).json({
+      error: 'invalid_request',
+      message: 'Enter a valid email and a password of at least 12 characters.'
+    });
+  }
+
+  const client = await db.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const setup = await client.query(
+      `SELECT id
+       FROM admin_setup_tokens
+       WHERE token_hash = $1
+         AND used_at IS NULL
+         AND expires_at > NOW()
+       FOR UPDATE`,
+      [hashToken(token)]
+    );
+
+    if (!setup.rowCount) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'setup_token_invalid_or_expired' });
+    }
+
+    const existing = await client.query(
+      'SELECT id FROM admin_users LIMIT 1'
+    );
+
+    if (existing.rowCount) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'admin_already_exists' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    const created = await client.query(
+      `INSERT INTO admin_users (email, password_hash, role)
+       VALUES ($1, $2, 'super_admin')
+       RETURNING id, email, role`,
+      [email, passwordHash]
+    );
+
+    await client.query(
+      `UPDATE admin_setup_tokens
+       SET used_at = NOW()
+       WHERE id = $1`,
+      [setup.rows[0].id]
+    );
+
+    const sessionToken = crypto.randomBytes(32).toString('hex');
+
+    await client.query(
+      `INSERT INTO admin_sessions
+       (admin_user_id, token_hash, expires_at)
+       VALUES ($1, $2, NOW() + INTERVAL '8 hours')`,
+      [created.rows[0].id, hashToken(sessionToken)]
+    );
+
+    await client.query('COMMIT');
+
+    res.cookie(COOKIE_NAME, sessionToken, cookieOptions());
+
+    return res.status(201).json({
+      authenticated: true,
+      admin: created.rows[0]
+    });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    next(error);
+  } finally {
+    client.release();
+  }
+});
 export default router;
