@@ -130,7 +130,7 @@ function AdminLoginPage() {
         throw new Error('Invalid email or password.')
       }
 
-      setMessage('Login successful! Welcome to Afrolivestream Studio.')
+      window.location.replace('/admin/dashboard')
       setPassword('')
     } catch (error) {
       setMessage(
