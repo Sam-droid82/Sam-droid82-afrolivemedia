@@ -104,7 +104,15 @@ router.post(
   '/admin/content',
   requireAllowedOrigin,
   requireAdmin,
-  (req, res) => {
+  async (req, res, next) => {
+    const db = getPool(req);
+
+if (!db) {
+  return res.status(503).json({
+    error: 'database_unavailable',
+    message: 'The database connection is unavailable.'
+  });
+}
     const { title, contentType, description, posterUrl, videoUrl } = req.body || {};
 
     if (!title || !contentType) {
@@ -113,7 +121,67 @@ router.post(
         message: 'Title and content type are required.'
       });
     }
+const normalizedType = String(contentType).trim().toLowerCase();
 
+const allowedTypes = ['movie', 'series', 'documentary'];
+
+if (!allowedTypes.includes(normalizedType)) {
+  return res.status(400).json({
+    error: 'invalid_content_type',
+    message: 'Content type must be Movie, Series, or Documentary.'
+  });
+}
+    const cleanTitle = typeof title === 'string' ? title.trim() : '';
+
+if (cleanTitle.length === 0 || cleanTitle.length > 240) {
+  return res.status(400).json({
+    error: 'invalid_title',
+    message: 'Movie title must contain between 1 and 240 characters.'
+  });
+}
+    const cleanDescription =
+  typeof description === 'string' ? description.trim() : '';
+
+if (cleanDescription.length > 5000) {
+  return res.status(400).json({
+    error: 'invalid_description',
+    message: 'Description must not exceed 5000 characters.'
+  });
+}
+    const cleanPosterUrl =
+  typeof posterUrl === 'string' ? posterUrl.trim() : '';
+
+if (cleanPosterUrl) {
+  try {
+    const parsedPosterUrl = new URL(cleanPosterUrl);
+
+    if (!['http:', 'https:'].includes(parsedPosterUrl.protocol)) {
+      throw new Error('Invalid URL protocol');
+    }
+  } catch {
+    return res.status(400).json({
+      error: 'invalid_poster_url',
+      message: 'Please enter a valid HTTP or HTTPS poster image URL.'
+    });
+  }
+}
+    const cleanVideoUrl =
+  typeof videoUrl === 'string' ? videoUrl.trim() : '';
+
+if (cleanVideoUrl) {
+  try {
+    const parsedVideoUrl = new URL(cleanVideoUrl);
+
+    if (!['http:', 'https:'].includes(parsedVideoUrl.protocol)) {
+      throw new Error('Invalid URL protocol');
+    }
+  } catch {
+    return res.status(400).json({
+      error: 'invalid_video_url',
+      message: 'Please enter a valid HTTP or HTTPS video URL.'
+    });
+  }
+}
     return res.status(501).json({
       error: 'saving_not_implemented',
       message: 'Administrator access verified. Database saving is not enabled yet.'
