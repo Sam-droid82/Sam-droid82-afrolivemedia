@@ -78,9 +78,13 @@ function AdminDashboardPage() {
         }
         return response.json()
       })
-      .then(data => {
-        if (data?.authenticated) {
-          setStatus('Welcome to Afrolivestream Studio!')
+     .then(data => {
+  if (data?.authenticated === true) {
+    setStatus('Welcome to Afrolivestream Studio!')
+  } else {
+    window.location.replace('/admin/login')
+  }
+}) 
         }
       })
       .catch(() => {
