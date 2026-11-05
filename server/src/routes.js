@@ -227,5 +227,42 @@ if (cleanVideoUrl) {
 }
 }
 );
+router.get('/admin/content', requireAdmin, async (req, res, next) => {
+  const db = getPool(req);
 
+  if (!db) {
+    return res.status(503).json({
+      error: 'database_unavailable',
+      message: 'The database connection is unavailable.'
+    });
+  }
+
+  try {
+    const result = await db.query(
+      `SELECT
+        id,
+        slug,
+        title,
+        description,
+        category,
+        content_type,
+        artwork_url,
+        video_url,
+        status,
+        rights_status,
+        created_at
+      FROM content_items
+      WHERE deleted_at IS NULL
+      ORDER BY created_at DESC
+      LIMIT 100`
+    );
+
+    return res.status(200).json({
+      success: true,
+      content: result.rows
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
 export default router;
