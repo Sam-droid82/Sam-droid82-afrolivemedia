@@ -84,9 +84,7 @@ function AdminDashboardPage() {
   } else {
     window.location.replace('/admin/login')
   }
-}) 
-        }
-      })
+})
       .catch(() => {
         window.location.replace('/admin/login')
       })
