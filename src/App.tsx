@@ -64,6 +64,93 @@ const categories = [
   { name: 'Community', icon: Users },
   { name: 'Education', icon: GraduationCap },
 ]
+function AdminLoginPage() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [message, setMessage] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setLoading(true)
+    setMessage('')
+
+    try {
+      const response = await fetch(
+        'https://afrolivestream-api.onrender.com/api/admin/login',
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        }
+      )
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error('Invalid email or password.')
+      }
+
+      setMessage('Login successful! Welcome to Afrolivestream Studio.')
+      setPassword('')
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : 'Login failed.'
+      )
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <main style={{
+      minHeight: '100vh',
+      display: 'grid',
+      placeItems: 'center',
+      background: '#101116',
+      color: 'white',
+      padding: '24px'
+    }}>
+      <form onSubmit={handleLogin} style={{
+        width: '100%',
+        maxWidth: '420px',
+        display: 'grid',
+        gap: '16px',
+        padding: '32px',
+        background: '#1c1e27',
+        borderRadius: '16px'
+      }}>
+        <h1>Afrolivestream Studio Login</h1>
+        <p>Sign in to your administrator account.</p>
+
+        <label>Email address</label>
+        <input
+          type="email"
+          required
+          value={email}
+          onChange={event => setEmail(event.target.value)}
+          placeholder="Administrator email"
+        />
+
+        <label>Password</label>
+        <input
+          type="password"
+          required
+          value={password}
+          onChange={event => setPassword(event.target.value)}
+          placeholder="Your password"
+        />
+
+        <button type="submit" disabled={loading}>
+          {loading ? 'Signing in...' : 'Sign In'}
+        </button>
+
+        {message && <p role="status">{message}</p>}
+      </form>
+    </main>
+  )
+}
 function AdminSetupPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -234,6 +321,9 @@ useEffect(() => {
   }
 if (window.location.pathname === '/admin/setup') {
   return <AdminSetupPage />
+}
+  if (window.location.pathname === '/admin/login') {
+  return <AdminLoginPage />
 }
   return (
     <div className="app-shell">
