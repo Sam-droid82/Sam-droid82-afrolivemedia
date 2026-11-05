@@ -62,9 +62,12 @@ const categories = [
   { name: 'Movies & Series', icon: Clapperboard },
   { name: 'Podcasts', icon: Headphones },
   { name: 'Community', icon: Users },
-  { name: 'Education', icon: GraduationCap },
-]
+    { name: 'Education', icon: GraduationCap },
+];
+
 function AdminLoginPage() {
+
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [message, setMessage] = useState('')
