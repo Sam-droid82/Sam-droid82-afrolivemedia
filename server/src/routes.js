@@ -1,7 +1,20 @@
 import { Router } from 'express';
-
+import { requireAdmin } from './auth.js';
 const router = Router();
+function requireAllowedOrigin(req, res, next) {
+  const allowedOrigins = (process.env.CORS_ORIGINS || '')
+    .split(',')
+    .map(origin => origin.trim())
+    .filter(Boolean);
 
+  const origin = req.get('origin');
+
+  if (!origin || !allowedOrigins.includes(origin)) {
+    return res.status(403).json({ error: 'origin_not_allowed' });
+  }
+
+  next();
+}
 function getPool(req) {
   return req.app.locals.db;
 }
