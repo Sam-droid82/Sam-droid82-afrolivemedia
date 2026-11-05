@@ -160,7 +160,11 @@ return (
 function AdminMoviesPage() {
   const [status, setStatus] = useState('Checking administrator access...')
   const [authorized, setAuthorized] = useState(false)
-
+const [movieTitle, setMovieTitle] = useState('')
+  const [contentType, setContentType] = useState('Movie')
+ const [movieDescription, setMovieDescription] = useState('')
+  const [posterUrl, setPosterUrl] = useState('')
+  const [videoUrl, setVideoUrl] = useState('')
   useEffect(() => {
     fetch('https://afrolivestream-api.onrender.com/api/admin/me', {
       credentials: 'include'
@@ -217,8 +221,136 @@ function AdminMoviesPage() {
         borderRadius: '14px',
         marginTop: '24px'
       }}>
-        <h2>Content Library</h2>
-        <p>Movie and series management tools are coming next.</p>
+        <h2>Add New Movie / Series</h2>
+
+<label htmlFor="movie-title">Movie or Series Title</label>
+
+<input
+  id="movie-title"
+  type="text"
+  value={movieTitle}
+  onChange={event => setMovieTitle(event.target.value)}
+  placeholder="Enter movie or series title"
+  style={{
+    display: 'block',
+    width: '100%',
+    maxWidth: '500px',
+    padding: '12px',
+    marginTop: '10px',
+    background: '#101116',
+    color: 'white',
+    border: '1px solid #444',
+    borderRadius: '8px',
+    boxSizing: 'border-box'
+  }}
+/>
+       <label
+  htmlFor="content-type"
+  style={{ display: 'block', marginTop: '20px' }}
+>
+  Content Type
+</label>
+
+<select
+  id="content-type"
+  value={contentType}
+  onChange={event => setContentType(event.target.value)}
+  style={{
+    display: 'block',
+    width: '100%',
+    maxWidth: '500px',
+    padding: '12px',
+    marginTop: '10px',
+    background: '#101116',
+    color: 'white',
+    border: '1px solid #444',
+    borderRadius: '8px'
+  }}
+>
+  <option value="Movie">Movie</option>
+  <option value="Series">Series</option>
+  <option value="Documentary">Documentary</option>
+</select> 
+     <label
+  htmlFor="movie-description"
+  style={{ display: 'block', marginTop: '20px' }}
+>
+  Movie or Series Description
+</label>
+
+<textarea
+  id="movie-description"
+  value={movieDescription}
+  onChange={event => setMovieDescription(event.target.value)}
+  placeholder="Enter a description"
+  rows={5}
+  style={{
+    display: 'block',
+    width: '100%',
+    maxWidth: '500px',
+    padding: '12px',
+    marginTop: '10px',
+    background: '#101116',
+    color: 'white',
+    border: '1px solid #444',
+    borderRadius: '8px'
+  }}
+/> 
+        
+<label
+  htmlFor="poster-url"
+  style={{ display: 'block', marginTop: '20px' }}
+>
+  Poster Image URL
+</label>
+
+<input
+  id="poster-url"
+  type="url"
+  value={posterUrl}
+  onChange={event => setPosterUrl(event.target.value)}
+  placeholder="https://example.com/poster.jpg"
+  style={{
+    display: 'block',
+    width: '100%',
+    maxWidth: '500px',
+    padding: '12px',
+    marginTop: '10px',
+    background: '#101116',
+    color: 'white',
+    border: '1px solid #444',
+    borderRadius: '8px',
+    boxSizing: 'border-box'
+  }}
+/>
+
+<label
+  htmlFor="video-url"
+  style={{ display: 'block', marginTop: '20px' }}
+>
+  Video URL
+</label>
+
+<input
+  id="video-url"
+  type="url"
+  value={videoUrl}
+  onChange={event => setVideoUrl(event.target.value)}
+  placeholder="https://example.com/video.mp4"
+  style={{
+    display: 'block',
+    width: '100%',
+    maxWidth: '500px',
+    padding: '12px',
+    marginTop: '10px',
+    background: '#101116',
+    color: 'white',
+    border: '1px solid #444',
+    borderRadius: '8px',
+    boxSizing: 'border-box'
+  }}
+/>
+
       </section>
     </main>
   )
