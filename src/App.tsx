@@ -129,8 +129,16 @@ return (
             { title: 'Content Library', icon: '📁' },
             { title: 'Analytics', icon: '📊' }
           ].map(section => (
-            <div key={section.title} style={{
+            <div
+  key={section.title}
+  onClick={() => {
+    if (section.title === 'Movies & Series') {
+      window.location.href = '/admin/movies'
+    }
+  }}
+  style={{
               background: '#1c1e27',
+    cursor: section.title === 'Movies & Series' ? 'pointer' : 'default',
               padding: '24px',
               borderRadius: '14px',
               border: '1px solid #30333e'
@@ -148,6 +156,74 @@ return (
   </main>
 )
 }
+
+function AdminMoviesPage() {
+  const [status, setStatus] = useState('Checking administrator access...')
+  const [authorized, setAuthorized] = useState(false)
+
+  useEffect(() => {
+    fetch('https://afrolivestream-api.onrender.com/api/admin/me', {
+      credentials: 'include'
+    })
+      .then(response => {
+        if (!response.ok) {
+          window.location.replace('/admin/login')
+          return null
+        }
+        return response.json()
+      })
+      .then(data => {
+        if (data?.authenticated === true) {
+          setAuthorized(true)
+        } else {
+          window.location.replace('/admin/login')
+        }
+      })
+      .catch(() => {
+        setStatus('Unable to verify administrator access.')
+      })
+  }, [])
+
+  if (!authorized) {
+    return (
+      <main style={{
+        minHeight: '100vh',
+        background: '#101116',
+        color: 'white',
+        padding: '32px'
+      }}>
+        <p>{status}</p>
+      </main>
+    )
+  }
+
+  return (
+    <main style={{
+      minHeight: '100vh',
+      background: '#101116',
+      color: 'white',
+      padding: '32px'
+    }}>
+      <button onClick={() => window.location.href = '/admin/dashboard'}>
+        Back to Dashboard
+      </button>
+
+      <h1>Movies & Series Management</h1>
+      <p>Manage your Afrolivestream movie and series catalogue.</p>
+
+      <section style={{
+        background: '#1c1e27',
+        padding: '24px',
+        borderRadius: '14px',
+        marginTop: '24px'
+      }}>
+        <h2>Content Library</h2>
+        <p>Movie and series management tools are coming next.</p>
+      </section>
+    </main>
+  )
+}
+
 function AdminLoginPage() {
 
 
@@ -413,6 +489,9 @@ if (window.location.pathname === '/admin/setup') {
 }
   if (window.location.pathname === '/admin/dashboard') {
   return <AdminDashboardPage />
+}
+  if (window.location.pathname === '/admin/movies') {
+  return <AdminMoviesPage />
 }
   return (
     <div className="app-shell">
