@@ -165,6 +165,8 @@ const [movieTitle, setMovieTitle] = useState('')
  const [movieDescription, setMovieDescription] = useState('')
   const [posterUrl, setPosterUrl] = useState('')
   const [videoUrl, setVideoUrl] = useState('')
+  const [savingMovie, setSavingMovie] = useState(false)
+const [saveMessage, setSaveMessage] = useState('')
   useEffect(() => {
     fetch('https://afrolivestream-api.onrender.com/api/admin/me', {
       credentials: 'include'
@@ -187,7 +189,46 @@ const [movieTitle, setMovieTitle] = useState('')
         setStatus('Unable to verify administrator access.')
       })
   }, [])
+const handleSaveMovie = async () => {
+  if (savingMovie) return
 
+  setSavingMovie(true)
+  setSaveMessage('Saving content...')
+
+  try {
+    const response = await fetch(
+      'https://afrolivestream-api.onrender.com/api/admin/content',
+      {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          title: movieTitle,
+          contentType,
+          description: movieDescription,
+          posterUrl,
+          videoUrl
+        })
+      }
+    )
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Unable to save content.')
+    }
+
+    setSaveMessage('Content saved successfully as a draft!')
+  } catch (error) {
+    setSaveMessage(
+      error instanceof Error ? error.message : 'Unable to save content.'
+    )
+  } finally {
+    setSavingMovie(false)
+  }
+}
   if (!authorized) {
     return (
       <main style={{
@@ -350,7 +391,31 @@ const [movieTitle, setMovieTitle] = useState('')
     boxSizing: 'border-box'
   }}
 />
+<button
+  type="button"
+  onClick={handleSaveMovie}
+  disabled={savingMovie || !movieTitle.trim()}
+  style={{
+    display: 'block',
+    marginTop: '24px',
+    padding: '14px 28px',
+    background: '#2563eb',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '16px',
+    fontWeight: 'bold',
+    cursor: savingMovie ? 'wait' : 'pointer'
+  }}
+>
+  {savingMovie ? 'Saving...' : 'Save Movie / Series'}
+</button>
 
+{saveMessage && (
+  <p role="status" style={{ marginTop: '16px', color: 'white' }}>
+    {saveMessage}
+  </p>
+)}
       </section>
     </main>
   )
