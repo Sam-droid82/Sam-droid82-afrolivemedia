@@ -100,4 +100,25 @@ router.get('/channels', async (req, res, next) => {
   }
 });
 
+router.post(
+  '/admin/content',
+  requireAllowedOrigin,
+  requireAdmin,
+  (req, res) => {
+    const { title, contentType, description, posterUrl, videoUrl } = req.body || {};
+
+    if (!title || !contentType) {
+      return res.status(400).json({
+        error: 'missing_required_fields',
+        message: 'Title and content type are required.'
+      });
+    }
+
+    return res.status(501).json({
+      error: 'saving_not_implemented',
+      message: 'Administrator access verified. Database saving is not enabled yet.'
+    });
+  }
+);
+
 export default router;
