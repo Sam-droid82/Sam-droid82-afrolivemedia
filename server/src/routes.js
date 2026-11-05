@@ -182,11 +182,50 @@ if (cleanVideoUrl) {
     });
   }
 }
-    return res.status(501).json({
-      error: 'saving_not_implemented',
-      message: 'Administrator access verified. Database saving is not enabled yet.'
-    });
-  }
+    const slug = (
+  cleanTitle
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 100) || 'content'
+) + '-' + crypto.randomUUID().slice(0, 8);
+    try {
+    const result = await db.query(
+  `INSERT INTO content_items (
+    slug,
+    title,
+    description,
+    category,
+    content_type,
+    artwork_url,
+    video_url,
+    status,
+    rights_status
+  )
+  VALUES ($1, $2, $3, $4, $5, $6, $7, 'draft', 'pending_review')
+  RETURNING id, slug, title, content_type, status`,
+  [
+    slug,
+    cleanTitle,
+    cleanDescription,
+    'entertainment',
+    normalizedType,
+    cleanPosterUrl || null,
+    cleanVideoUrl || null
+  ]
+);
+    return res.status(201).json({
+  success: true,
+  message: 'Content saved successfully as a draft.',
+  content: result.rows[0]
+});
+
+} catch (error) {
+  return next(error);
+}
+}
 );
 
 export default router;
