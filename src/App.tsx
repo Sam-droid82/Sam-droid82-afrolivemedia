@@ -89,7 +89,7 @@ function AdminLoginPage() {
         }
       )
 
-      const data = await response.json()
+      await response.json()
 
       if (!response.ok) {
         throw new Error('Invalid email or password.')
