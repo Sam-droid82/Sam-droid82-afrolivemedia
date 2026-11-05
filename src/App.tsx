@@ -64,7 +64,42 @@ const categories = [
   { name: 'Community', icon: Users },
     { name: 'Education', icon: GraduationCap },
 ];
+function AdminDashboardPage() {
+  const [status, setStatus] = useState('Checking administrator access...')
 
+  useEffect(() => {
+    fetch('https://afrolivestream-api.onrender.com/api/admin/me', {
+      credentials: 'include'
+    })
+      .then(response => {
+        if (!response.ok) {
+          window.location.replace('/admin/login')
+          return null
+        }
+        return response.json()
+      })
+      .then(data => {
+        if (data?.authenticated) {
+          setStatus('Welcome to Afrolivestream Studio!')
+        }
+      })
+      .catch(() => {
+        window.location.replace('/admin/login')
+      })
+  }, [])
+
+  return (
+    <main style={{
+      minHeight: '100vh',
+      background: '#101116',
+      color: 'white',
+      padding: '32px'
+    }}>
+      <h1>Afrolivestream Studio</h1>
+      <p>{status}</p>
+    </main>
+  )
+}
 function AdminLoginPage() {
 
 
@@ -327,6 +362,9 @@ if (window.location.pathname === '/admin/setup') {
 }
   if (window.location.pathname === '/admin/login') {
   return <AdminLoginPage />
+}
+  if (window.location.pathname === '/admin/dashboard') {
+  return <AdminDashboardPage />
 }
   return (
     <div className="app-shell">
