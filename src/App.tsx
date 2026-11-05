@@ -90,16 +90,64 @@ function AdminDashboardPage() {
       })
   }, [])
 
-  return (
-    <main style={{
-      minHeight: '100vh',
-      background: '#101116',
-      color: 'white',
-      padding: '32px'
+  
+return (
+  <main style={{
+    minHeight: '100vh',
+    background: '#101116',
+    color: 'white',
+    padding: '24px'
+  }}>
+    <header style={{
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: '16px',
+      marginBottom: '32px'
     }}>
-      <h1>Afrolivestream Studio</h1>
+      <h1>AFROLIVESTREAM STUDIO</h1>
+      <span>Administrator Dashboard</span>
+    </header>
+
+    {status === 'Welcome to Afrolivestream Studio!' ? (
+      <>
+        <h2>Welcome to Afrolivestream Studio!</h2>
+        <p>Manage your streaming platform from one place.</p>
+
+        <section style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: '16px',
+          marginTop: '32px'
+        }}>
+          {[
+            { title: 'Movies & Series', icon: '🎬' },
+            { title: 'Live TV', icon: '📺' },
+            { title: 'Radio Stations', icon: '📻' },
+            { title: 'Podcasts', icon: '🎙️' },
+            { title: 'Content Library', icon: '📁' },
+            { title: 'Analytics', icon: '📊' }
+          ].map(section => (
+            <div key={section.title} style={{
+              background: '#1c1e27',
+              padding: '24px',
+              borderRadius: '14px',
+              border: '1px solid #30333e'
+            }}>
+              <div style={{ fontSize: '30px' }}>{section.icon}</div>
+              <h3>{section.title}</h3>
+              <p style={{ color: '#a5a7b5' }}>Coming soon</p>
+            </div>
+          ))}
+        </section>
+      </>
+    ) : (
       <p>{status}</p>
-    </main>
+    )}
+  </main>
+)
+
   )
 }
 function AdminLoginPage() {
