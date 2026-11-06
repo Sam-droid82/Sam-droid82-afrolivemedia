@@ -642,7 +642,6 @@ setVideoUrl(movie.video_url ?? '')
     if (!confirmed) return
 
     void handleDeleteMovie(movie.id)
-    )
   }}
   style={{
     marginLeft: '8px',
