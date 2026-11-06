@@ -416,6 +416,53 @@ const handleSaveMovie = async () => {
     {saveMessage}
   </p>
 )}
+        <div style={{ marginTop: '40px' }}>
+  <h2 style={{ color: 'white' }}>
+    Saved Movies & Series
+  </h2>
+
+  {loadingMovies ? (
+    <p style={{ color: 'white' }}>
+      Loading saved movies...
+    </p>
+  ) : savedMovies.length === 0 ? (
+    <p style={{ color: 'white' }}>
+      No saved movies found.
+    </p>
+  ) : (
+    <p style={{ color: 'white' }}>
+      {savedMovies.length} saved content item(s) found.
+    </p>
+  )}
+          {savedMovies.length > 0 && (
+  <div style={{ overflowX: 'auto', marginTop: '20px' }}>
+    <table style={{
+      width: '100%',
+      borderCollapse: 'collapse',
+      color: 'white'
+    }}>
+      <thead>
+        <tr>
+          <th style={{ padding: '12px', textAlign: 'left' }}>Title</th>
+          <th style={{ padding: '12px', textAlign: 'left' }}>Type</th>
+          <th style={{ padding: '12px', textAlign: 'left' }}>Status</th>
+          <th style={{ padding: '12px', textAlign: 'left' }}>Rights</th>
+        </tr>
+      </thead>
+      <tbody>
+        {savedMovies.map((movie) => (
+          <tr key={movie.id}>
+            <td style={{ padding: '12px' }}>{movie.title}</td>
+            <td style={{ padding: '12px' }}>{movie.content_type}</td>
+            <td style={{ padding: '12px' }}>{movie.status}</td>
+            <td style={{ padding: '12px' }}>{movie.rights_status}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+)}
+</div>
       </section>
     </main>
   )
