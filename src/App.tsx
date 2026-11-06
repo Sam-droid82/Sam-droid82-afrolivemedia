@@ -238,6 +238,36 @@ const handleSaveMovie = async () => {
     setSavingMovie(false)
   }
 }
+  const loadSavedMovies = async () => {
+  setLoadingMovies(true)
+
+  try {
+    const response = await fetch(
+      'https://afrolivestream-api.onrender.com/api/admin/content',
+      {
+        method: 'GET',
+        credentials: 'include'
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error('Unable to load saved movies.')
+    }
+
+    const data = await response.json()
+    setSavedMovies(data.content)
+  } catch (error) {
+    console.error('Failed to load movies:', error)
+    setSaveMessage('Unable to load saved movies.')
+  } finally {
+    setLoadingMovies(false)
+  }
+}
+  useEffect(() => {
+  if (!authorized) return
+
+  void loadSavedMovies()
+}, [authorized])
   if (!authorized) {
     return (
       <main style={{
