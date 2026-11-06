@@ -284,6 +284,38 @@ const handleSaveMovie = async () => {
     setSavingMovie(false)
   }
 }
+  const handleDeleteMovie = async (movieId: string) => {
+  setSaveMessage('Deleting movie...')
+
+  try {
+    const response = await fetch(
+      `https://afrolivestream-api.onrender.com/api/admin/content/${movieId}`,
+      {
+        method: 'DELETE',
+        credentials: 'include'
+      }
+    )
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Unable to delete movie.')
+    }
+
+    if (editingMovieId === movieId) {
+      setEditingMovieId(null)
+    }
+
+    setSaveMessage('Movie deleted successfully!')
+    await loadSavedMovies()
+  } catch (error) {
+    setSaveMessage(
+      error instanceof Error
+        ? error.message
+        : 'Unable to delete movie.'
+    )
+  }
+}
   const loadSavedMovies = async () => {
   setLoadingMovies(true)
 
@@ -600,6 +632,30 @@ setVideoUrl(movie.video_url ?? '')
   >
     Edit
   </button>
+              <button
+  type="button"
+  onClick={() => {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${movie.title}"?`
+    )
+
+    if (!confirmed) return
+
+    void handleDeleteMovie(movie.id)
+    )
+  }}
+  style={{
+    marginLeft: '8px',
+    padding: '8px 16px',
+    background: '#dc2626',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer'
+  }}
+>
+  Delete
+</button>
 </td>
           </tr>
         ))}
