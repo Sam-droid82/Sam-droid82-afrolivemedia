@@ -167,6 +167,15 @@ const [movieTitle, setMovieTitle] = useState('')
   const [videoUrl, setVideoUrl] = useState('')
   const [savingMovie, setSavingMovie] = useState(false)
 const [saveMessage, setSaveMessage] = useState('')
+  const [savedMovies, setSavedMovies] = useState<Array<{
+  id: string
+  title: string
+  content_type: string
+  status: string
+  rights_status: string
+}>>([])
+
+const [loadingMovies, setLoadingMovies] = useState(false)
   useEffect(() => {
     fetch('https://afrolivestream-api.onrender.com/api/admin/me', {
       credentials: 'include'
