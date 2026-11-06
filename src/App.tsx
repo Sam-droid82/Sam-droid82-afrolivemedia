@@ -167,10 +167,14 @@ const [movieTitle, setMovieTitle] = useState('')
   const [videoUrl, setVideoUrl] = useState('')
   const [savingMovie, setSavingMovie] = useState(false)
 const [saveMessage, setSaveMessage] = useState('')
+  const [editingMovieId, setEditingMovieId] = useState<string | null>(null)
   const [savedMovies, setSavedMovies] = useState<Array<{
   id: string
   title: string
   content_type: string
+  description: string
+  artwork_url: string | null
+  video_url: string | null
   status: string
   rights_status: string
 }>>([])
@@ -233,6 +237,48 @@ const handleSaveMovie = async () => {
   } catch (error) {
     setSaveMessage(
       error instanceof Error ? error.message : 'Unable to save content.'
+    )
+  } finally {
+    setSavingMovie(false)
+  }
+}
+  const handleUpdateMovie = async () => {
+  if (!editingMovieId || savingMovie) return
+
+  setSavingMovie(true)
+  setSaveMessage('Updating movie...')
+
+  try {
+    const response = await fetch(
+      `https://afrolivestream-api.onrender.com/api/admin/content/${editingMovieId}`,
+      {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          title: movieTitle,
+          contentType,
+          description: movieDescription,
+          posterUrl,
+          videoUrl
+        })
+      }
+    )
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Unable to update movie.')
+    }
+
+    setSaveMessage('Movie updated successfully!')
+    setEditingMovieId(null)
+    await loadSavedMovies()
+  } catch (error) {
+    setSaveMessage(
+      error instanceof Error ? error.message : 'Unable to update movie.'
     )
   } finally {
     setSavingMovie(false)
@@ -432,7 +478,7 @@ const handleSaveMovie = async () => {
 />
 <button
   type="button"
-  onClick={handleSaveMovie}
+  onClick={editingMovieId ? handleUpdateMovie : handleSaveMovie}
   disabled={savingMovie || !movieTitle.trim()}
   style={{
     display: 'block',
@@ -447,9 +493,38 @@ const handleSaveMovie = async () => {
     cursor: savingMovie ? 'wait' : 'pointer'
   }}
 >
-  {savingMovie ? 'Saving...' : 'Save Movie / Series'}
+  {savingMovie
+  ? 'Saving...'
+  : editingMovieId
+    ? 'Update Movie'
+    : 'Save Movie / Series'}
 </button>
-
+{editingMovieId && (
+  <button
+    type="button"
+    onClick={() => {
+      setEditingMovieId(null)
+      setMovieTitle('')
+      setContentType('Movie')
+      setMovieDescription('')
+      setPosterUrl('')
+      setVideoUrl('')
+      setSaveMessage('')
+    }}
+    disabled={savingMovie}
+    style={{
+      marginTop: '12px',
+      padding: '12px 24px',
+      background: '#374151',
+      color: 'white',
+      border: 'none',
+      borderRadius: '8px',
+      cursor: 'pointer'
+    }}
+  >
+    Cancel Editing
+  </button>
+)}
 {saveMessage && (
   <p role="status" style={{ marginTop: '16px', color: 'white' }}>
     {saveMessage}
@@ -486,6 +561,7 @@ const handleSaveMovie = async () => {
           <th style={{ padding: '12px', textAlign: 'left' }}>Type</th>
           <th style={{ padding: '12px', textAlign: 'left' }}>Status</th>
           <th style={{ padding: '12px', textAlign: 'left' }}>Rights</th>
+          <th style={{ padding: '12px', textAlign: 'left' }}>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -495,6 +571,36 @@ const handleSaveMovie = async () => {
             <td style={{ padding: '12px' }}>{movie.content_type}</td>
             <td style={{ padding: '12px' }}>{movie.status}</td>
             <td style={{ padding: '12px' }}>{movie.rights_status}</td>
+            <td style={{ padding: '12px' }}>
+  <button
+    type="button"
+    onClick={() => {
+      setEditingMovieId(movie.id)
+      setMovieTitle(movie.title)
+      setContentType(
+        movie.content_type === 'series'
+          ? 'Series'
+          : movie.content_type === 'documentary'
+            ? 'Documentary'
+            : 'Movie'
+      )
+      setMovieDescription(movie.description ?? '')
+setPosterUrl(movie.artwork_url ?? '')
+setVideoUrl(movie.video_url ?? '')
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }}
+    style={{
+      padding: '8px 16px',
+      background: '#2563eb',
+      color: 'white',
+      border: 'none',
+      borderRadius: '6px',
+      cursor: 'pointer'
+    }}
+  >
+    Edit
+  </button>
+</td>
           </tr>
         ))}
       </tbody>
