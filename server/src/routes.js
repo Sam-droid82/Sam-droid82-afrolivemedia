@@ -270,6 +270,107 @@ router.patch(
   requireAllowedOrigin,
   requireAdmin,
   async (req, res, next) => {
+    const { id } = req.params;
+
+const uuidPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+if (!uuidPattern.test(id)) {
+  return res.status(400).json({
+    error: 'invalid_movie_id',
+    message: 'A valid movie ID is required.'
+  });
+}
+    const { title } = req.body || {};
+
+if (title !== undefined) {
+  if (typeof title !== 'string' ||
+      title.trim().length === 0 ||
+      title.trim().length > 240) {
+    return res.status(400).json({
+      error: 'invalid_title',
+      message: 'Movie title must contain between 1 and 240 characters.'
+    });
+  }
+}
+    const { contentType } = req.body || {};
+
+if (contentType !== undefined) {
+  if (
+    typeof contentType !== 'string' ||
+    !['movie', 'series', 'documentary'].includes(
+      contentType.trim().toLowerCase()
+    )
+  ) {
+    return res.status(400).json({
+      error: 'invalid_content_type',
+      message: 'Content type must be Movie, Series, or Documentary.'
+    });
+  }
+}
+    const { description } = req.body || {};
+
+if (description !== undefined) {
+  if (
+    typeof description !== 'string' ||
+    description.trim().length > 5000
+  ) {
+    return res.status(400).json({
+      error: 'invalid_description',
+      message: 'Description must not exceed 5000 characters.'
+    });
+  }
+}
+    const { posterUrl } = req.body || {};
+
+if (posterUrl !== undefined) {
+  if (typeof posterUrl !== 'string') {
+    return res.status(400).json({
+      error: 'invalid_poster_url',
+      message: 'Poster URL must be a valid string.'
+    });
+  }
+
+  if (posterUrl.trim()) {
+    try {
+      const parsedPosterUrl = new URL(posterUrl.trim());
+
+      if (!['http:', 'https:'].includes(parsedPosterUrl.protocol)) {
+        throw new Error('Invalid URL protocol');
+      }
+    } catch {
+      return res.status(400).json({
+        error: 'invalid_poster_url',
+        message: 'Please enter a valid HTTP or HTTPS poster URL.'
+      });
+    }
+  }
+}
+    const { videoUrl } = req.body || {};
+
+if (videoUrl !== undefined) {
+  if (typeof videoUrl !== 'string') {
+    return res.status(400).json({
+      error: 'invalid_video_url',
+      message: 'Video URL must be a valid string.'
+    });
+  }
+
+  if (videoUrl.trim()) {
+    try {
+      const parsedVideoUrl = new URL(videoUrl.trim());
+
+      if (!['http:', 'https:'].includes(parsedVideoUrl.protocol)) {
+        throw new Error('Invalid URL protocol');
+      }
+    } catch {
+      return res.status(400).json({
+        error: 'invalid_video_url',
+        message: 'Please enter a valid HTTP or HTTPS video URL.'
+      });
+    }
+  }
+}
     const db = getPool(req);
 
     if (!db) {
@@ -278,11 +379,76 @@ router.patch(
         message: 'The database connection is unavailable.'
       });
     }
+const updates = [];
+const values = [];
 
-    return res.status(501).json({
-      error: 'editing_not_implemented',
-      message: 'Edit Movie endpoint created. Database updating is not enabled yet.'
+function addUpdate(column, value) {
+  values.push(value);
+  updates.push(`${column} = $${values.length}`);
+}
+
+if (title !== undefined) {
+  addUpdate('title', title.trim());
+}
+
+if (contentType !== undefined) {
+  addUpdate('content_type', contentType.trim().toLowerCase());
+}
+
+if (description !== undefined) {
+  addUpdate('description', description.trim());
+}
+
+if (posterUrl !== undefined) {
+  addUpdate('artwork_url', posterUrl.trim() || null);
+}
+
+if (videoUrl !== undefined) {
+  addUpdate('video_url', videoUrl.trim() || null);
+}
+    if (updates.length === 0) {
+  return res.status(400).json({
+    error: 'no_changes_provided',
+    message: 'Please provide at least one field to update.'
+  });
+}
+    values.push(id);
+
+const updateQuery = `
+  UPDATE content_items
+  SET ${updates.join(', ')},
+      updated_at = NOW()
+  WHERE id = $${values.length}
+    AND deleted_at IS NULL
+  RETURNING
+    id,
+    title,
+    description,
+    content_type,
+    artwork_url,
+    video_url,
+    status,
+    rights_status,
+    updated_at
+`;
+    try {
+  const result = await db.query(updateQuery, values);
+
+  if (result.rows.length === 0) {
+    return res.status(404).json({
+      error: 'movie_not_found',
+      message: 'Movie not found or has been deleted.'
     });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: 'Movie updated successfully.',
+    content: result.rows[0]
+  });
+} catch (error) {
+  return next(error);
+}
   }
 );
 export default router;
