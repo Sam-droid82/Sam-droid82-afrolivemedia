@@ -265,4 +265,24 @@ router.get('/admin/content', requireAdmin, async (req, res, next) => {
     return next(error);
   }
 });
+router.patch(
+  '/admin/content/:id',
+  requireAllowedOrigin,
+  requireAdmin,
+  async (req, res, next) => {
+    const db = getPool(req);
+
+    if (!db) {
+      return res.status(503).json({
+        error: 'database_unavailable',
+        message: 'The database connection is unavailable.'
+      });
+    }
+
+    return res.status(501).json({
+      error: 'editing_not_implemented',
+      message: 'Edit Movie endpoint created. Database updating is not enabled yet.'
+    });
+  }
+);
 export default router;
