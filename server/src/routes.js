@@ -614,7 +614,10 @@ if (!uuidPattern.test(id)) {
   let transactionStarted = false;
 try {
   client = await db.connect();
-  const movieResult = await db.query(
+  // Read-only validation occurs before the transaction begins.
+// BEGIN will be added only after all validation checks pass.
+// All approval updates and audit inserts must use this client.
+  const movieResult = await client.query(
     `SELECT id, title, status, rights_status
      FROM content_items
      WHERE id = $1 AND deleted_at IS NULL`,
@@ -627,7 +630,7 @@ try {
       message: 'Movie not found.'
     });
   }
-const rightsResult = await db.query(
+const rightsResult = await client.query(
   `SELECT id, content_id, review_status,
           rights_holder_name, license_reference,
           evidence_url, license_start_date,
@@ -681,7 +684,28 @@ if (
     error: 'invalid_license_dates',
     message: 'The distribution licence must have valid start and expiry dates covering today.'
   });
-} 
+}
+  // Begin the rights approval transaction.
+// No approval changes are permitted until all
+// required checks and audit writes are implemented.
+await client.query('BEGIN');
+transactionStarted = true;
+  // TRANSACTION BOUNDARY:
+// All preliminary validation checks above must pass.
+// Before enabling approval, recheck the rights evidence and
+// licence validity within a transaction using locked rows.
+// Update the review, movie status, and audit log atomically.
+// Keep HTTP 501 until the complete workflow is implemented.
+  // Temporary safeguard until rights approval is implemented.
+await client.query('ROLLBACK');
+transactionStarted = false;
+  // AUDIT LOG REQUIREMENTS:
+// Record the content ID and rights review ID.
+// Record the authenticated administrator's ID.
+// Record the previous and new rights approval status.
+// Record the approval timestamp and verification outcome.
+// Save the audit record in the same transaction as approval.
+// If audit logging fails, roll back the entire approval.
 } catch (error) {
   if (client && transactionStarted) {
     try {
