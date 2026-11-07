@@ -578,6 +578,19 @@ router.patch(
   async (req, res, next) => {
     const { id } = req.params;
     const db = getPool(req);
+    // Rights approval must use a single database transaction.
+// The review decision, movie rights status, and audit log
+// must either all succeed or all be rolled back.
+// Do not enable approval until these safeguards are implemented.
+    const reviewerId = req.admin?.id;
+const reviewerEmail = req.admin?.email;
+
+if (!reviewerId || !reviewerEmail) {
+  return res.status(403).json({
+    error: 'reviewer_identity_missing',
+    message: 'An authenticated administrator identity is required.'
+  });
+  
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -593,7 +606,14 @@ if (!uuidPattern.test(id)) {
         message: 'The database connection is unavailable.'
       });
     }
+  // Future approval transaction will use db.connect()
+// with BEGIN, COMMIT, ROLLBACK, and client.release().
+// Keep the current database lookups read-only until
+// the complete approval and audit workflow is implemented.
+ let client;
+  let transactionStarted = false;
 try {
+  client = await db.connect();
   const movieResult = await db.query(
     `SELECT id, title, status, rights_status
      FROM content_items
@@ -663,7 +683,20 @@ if (
   });
 } 
 } catch (error) {
+  if (client && transactionStarted) {
+    try {
+      await client.query('ROLLBACK');
+      transactionStarted = false;
+    } catch (rollbackError) {
+      console.error('Rights approval rollback failed:', rollbackError);
+    }
+  }
+
   return next(error);
+} finally {
+  if (client) {
+    client.release(transactionStarted);
+  }
 }
     return res.status(501).json({
       error: 'rights_approval_not_implemented',
