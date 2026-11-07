@@ -570,5 +570,28 @@ return res.status(200).json({
 }
   }
 );
+// Distribution Rights Approval
+router.patch(
+  '/admin/content/:id/approve-rights',
+  requireAllowedOrigin,
+  requireAdmin,
+  async (req, res, next) => {
+    const { id } = req.params;
+    const db = getPool(req);
+
+    if (!db) {
+      return res.status(503).json({
+        error: 'database_unavailable',
+        message: 'The database connection is unavailable.'
+      });
+    }
+
+    return res.status(501).json({
+      error: 'rights_approval_not_implemented',
+      message: 'Rights approval requires verified evidence and an audit trail.'
+    });
+  }
+);
+
 export default router;
 
