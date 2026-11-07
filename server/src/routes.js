@@ -726,7 +726,6 @@ transactionStarted = false;
     client.release(transactionStarted);
   }
 }
-}
   );
   
 
