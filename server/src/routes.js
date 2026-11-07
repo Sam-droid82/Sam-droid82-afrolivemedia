@@ -578,14 +578,93 @@ router.patch(
   async (req, res, next) => {
     const { id } = req.params;
     const db = getPool(req);
+const uuidPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+if (!uuidPattern.test(id)) {
+  return res.status(400).json({
+    error: 'invalid_movie_id',
+    message: 'A valid movie ID is required.'
+  });
+}
     if (!db) {
       return res.status(503).json({
         error: 'database_unavailable',
         message: 'The database connection is unavailable.'
       });
     }
+try {
+  const movieResult = await db.query(
+    `SELECT id, title, status, rights_status
+     FROM content_items
+     WHERE id = $1 AND deleted_at IS NULL`,
+    [id]
+  );
 
+  if (movieResult.rows.length === 0) {
+    return res.status(404).json({
+      error: 'movie_not_found',
+      message: 'Movie not found.'
+    });
+  }
+const rightsResult = await db.query(
+  `SELECT id, content_id, review_status,
+          rights_holder_name, license_reference,
+          evidence_url, license_start_date,
+          license_expiry_date
+   FROM content_rights_reviews
+   WHERE content_id = $1
+   ORDER BY created_at DESC
+   LIMIT 1`,
+  [id]
+);
+
+if (rightsResult.rows.length === 0) {
+  return res.status(409).json({
+    error: 'rights_review_missing',
+    message: 'No distribution rights review has been submitted for this movie.'
+  });
+}
+ const rightsReview = rightsResult.rows[0];
+
+if (
+  !rightsReview.rights_holder_name?.trim() ||
+  !rightsReview.license_reference?.trim() ||
+  !rightsReview.evidence_url?.trim()
+) {
+  return res.status(409).json({
+    error: 'rights_evidence_incomplete',
+    message: 'Rights holder, license reference, and supporting evidence are required.'
+  });
+}
+ const today = new Date();
+today.setUTCHours(0, 0, 0, 0);
+
+const licenseStart = rightsReview.license_start_date
+  ? new Date(rightsReview.license_start_date)
+  : null;
+
+const licenseExpiry = rightsReview.license_expiry_date
+  ? new Date(rightsReview.license_expiry_date)
+  : null;
+
+if (
+  !licenseStart ||
+  !licenseExpiry ||
+  Number.isNaN(licenseStart.getTime()) ||
+  Number.isNaN(licenseExpiry.getTime()) ||
+  licenseStart > today ||
+  licenseExpiry < today ||
+  licenseExpiry < licenseStart
+) {
+  return res.status(409).json({
+    error: 'invalid_license_dates',
+    message: 'The distribution licence must have valid start and expiry dates covering today.'
+  });
+} 
+} catch (error) {
+  return next(error);
+}
     return res.status(501).json({
       error: 'rights_approval_not_implemented',
       message: 'Rights approval requires verified evidence and an audit trail.'
