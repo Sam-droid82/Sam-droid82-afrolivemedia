@@ -699,6 +699,10 @@ transactionStarted = true;
   // Temporary safeguard until rights approval is implemented.
 await client.query('ROLLBACK');
 transactionStarted = false;
+  return res.status(501).json({
+  error: 'rights_approval_not_implemented',
+  message: 'Rights approval requires verified evidence and an audit trail.'
+});
   // AUDIT LOG REQUIREMENTS:
 // Record the content ID and rights review ID.
 // Record the authenticated administrator's ID.
@@ -722,10 +726,7 @@ transactionStarted = false;
     client.release(transactionStarted);
   }
 }
-    return res.status(501).json({
-      error: 'rights_approval_not_implemented',
-      message: 'Rights approval requires verified evidence and an audit trail.'
-    });
+  
   }
 );
 
