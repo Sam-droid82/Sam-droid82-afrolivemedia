@@ -316,6 +316,32 @@ const handleSaveMovie = async () => {
     )
   }
 }
+  const handlePublishMovie = async (movieId: string) => {
+  setSaveMessage('Publishing movie...')
+
+  try {
+    const response = await fetch(
+      `https://afrolivestream-api.onrender.com/api/admin/content/${movieId}/publish`,
+      {
+        method: 'PATCH',
+        credentials: 'include'
+      }
+    )
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Unable to publish movie.')
+    }
+
+    setSaveMessage('Movie published successfully!')
+    await loadSavedMovies()
+  } catch (error) {
+    setSaveMessage(
+      error instanceof Error ? error.message : 'Unable to publish movie.'
+    )
+  }
+}
   const loadSavedMovies = async () => {
   setLoadingMovies(true)
 
@@ -654,6 +680,23 @@ setVideoUrl(movie.video_url ?? '')
   }}
 >
   Delete
+</button>
+              <button
+  type="button"
+ disabled={movie.status === 'published' || movie.rights_status !== 'approved'}
+onClick={() => void handlePublishMovie(movie.id)} 
+  style={{
+    marginLeft: '8px',
+    padding: '8px 16px',
+    background: '#16a34a',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    opacity: movie.status === 'published' || movie.rights_status !== 'approved' ? 0.5 : 1,
+cursor: movie.status === 'published' || movie.rights_status !== 'approved' ? 'not-allowed' : 'pointer'
+  }}
+>
+  Publish
 </button>
 </td>
           </tr>
