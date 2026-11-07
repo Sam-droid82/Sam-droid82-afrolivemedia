@@ -726,9 +726,9 @@ transactionStarted = false;
     client.release(transactionStarted);
   }
 }
+}
+  );
   
-  }
-);
 
 export default router;
 
