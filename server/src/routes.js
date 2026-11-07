@@ -496,5 +496,79 @@ const db = getPool(req);
     }
   }
 );
+router.patch(
+  '/admin/content/:id/publish',
+  requireAllowedOrigin,
+  requireAdmin,
+  async (req, res, next) => {
+    const { id } = req.params;
+    const db = getPool(req);
+
+    if (!db) {
+      return res.status(503).json({
+        error: 'database_unavailable',
+        message: 'The database connection is unavailable.'
+      });
+    }
+    const uuidPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+if (!uuidPattern.test(id)) {
+  return res.status(400).json({
+    error: 'invalid_movie_id',
+    message: 'A valid movie ID is required.'
+  });
+}
+    try {
+  const result = await db.query(
+    `SELECT id, title, status, rights_status
+     FROM content_items
+     WHERE id = $1 AND deleted_at IS NULL`,
+    [id]
+  );
+
+  if (result.rows.length === 0) {
+    return res.status(404).json({
+      error: 'movie_not_found',
+      message: 'Movie not found.'
+    });
+  }
+
+  const movie = result.rows[0];
+
+  if (movie.rights_status !== 'approved') {
+    return res.status(403).json({
+      error: 'rights_not_approved',
+      message: 'This movie cannot be published until its distribution rights are approved.'
+    });
+  }
+      const publishedResult = await db.query(
+  `UPDATE content_items
+   SET status = 'published',
+       updated_at = NOW()
+   WHERE id = $1
+     AND deleted_at IS NULL
+     AND rights_status = 'approved'
+   RETURNING id, title, status, rights_status`,
+  [id]
+);
+
+if (publishedResult.rows.length === 0) {
+  return res.status(409).json({
+    error: 'publishing_conditions_not_met',
+    message: 'Movie could not be published. Check its distribution rights.'
+  });
+}
+
+return res.status(200).json({
+  success: true,
+  message: 'Movie published successfully.',
+  content: publishedResult.rows[0]
+});
+} catch (error) {
+  return next(error);
+}
+  }
+);
 export default router;
 
