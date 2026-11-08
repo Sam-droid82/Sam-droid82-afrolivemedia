@@ -776,7 +776,7 @@ const updateResult = await client.query(
   } catch (error) {
   return next(error);
 }
-}
+
   }
 );
 // Distribution Rights Approval
