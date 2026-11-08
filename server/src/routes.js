@@ -570,6 +570,215 @@ return res.status(200).json({
 }
   }
 );
+// Distribution Rights Submission
+router.post(
+  '/admin/content/:id/submit-rights',
+  requireAllowedOrigin,
+  requireAdmin,
+  async (req, res, next) => {
+    const { id } = req.params;
+    const db = getPool(req);
+    if (!db) {
+  return res.status(503).json({
+    error: 'database_unavailable',
+    message: 'The database connection is unavailable.'
+  });
+}
+    const uuidPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+if (!uuidPattern.test(id)) {
+  return res.status(400).json({
+    error: 'invalid_movie_id',
+    message: 'A valid movie ID is required.'
+  });
+}
+    const {
+  rightsHolderName,
+  licenseReference,
+  evidenceUrl,
+  licenseStartDate,
+  licenseExpiryDate
+} = req.body || {};
+    if (
+  typeof rightsHolderName !== 'string' ||
+  !rightsHolderName.trim() ||
+  typeof licenseReference !== 'string' ||
+  !licenseReference.trim() ||
+  typeof evidenceUrl !== 'string' ||
+  !evidenceUrl.trim()
+) {
+  return res.status(400).json({
+    error: 'rights_information_incomplete',
+    message: 'Rights holder, licence reference, and supporting evidence URL are required.'
+  });
+}
+    let validatedEvidenceUrl;
+
+try {
+  validatedEvidenceUrl = new URL(evidenceUrl.trim());
+
+  if (validatedEvidenceUrl.protocol !== 'https:') {
+    throw new Error('HTTPS required');
+  }
+
+  if (
+    validatedEvidenceUrl.username ||
+    validatedEvidenceUrl.password
+  ) {
+    throw new Error('Credentials are not allowed');
+  }
+} catch {
+  return res.status(400).json({
+    error: 'invalid_evidence_url',
+    message: 'A valid HTTPS evidence URL is required.'
+  });
+}
+    const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+
+if (
+  typeof licenseStartDate !== 'string' ||
+  typeof licenseExpiryDate !== 'string' ||
+  !datePattern.test(licenseStartDate) ||
+  !datePattern.test(licenseExpiryDate)
+) {
+  return res.status(400).json({
+    error: 'invalid_license_dates',
+    message: 'Licence start and expiry dates must use YYYY-MM-DD format.'
+  });
+}
+    const startDate = new Date(`${licenseStartDate}T00:00:00Z`);
+const expiryDate = new Date(`${licenseExpiryDate}T00:00:00Z`);
+
+const isValidDate = (value, date) =>
+  !Number.isNaN(date.getTime()) &&
+  date.toISOString().slice(0, 10) === value;
+
+if (
+  !isValidDate(licenseStartDate, startDate) ||
+  !isValidDate(licenseExpiryDate, expiryDate) ||
+  expiryDate < startDate
+) {
+  return res.status(400).json({
+    error: 'invalid_license_period',
+    message: 'Licence dates must be valid, and expiry must not be before the start date.'
+  });
+}
+    const today = new Date();
+today.setUTCHours(0, 0, 0, 0);
+
+if (startDate > today || expiryDate < today) {
+  return res.status(400).json({
+    error: 'license_not_current',
+    message: 'The distribution licence must be active today.'
+  });
+}
+    try {
+    const movieResult = await db.query(
+  `SELECT id, title, status
+   FROM content_items
+   WHERE id = $1 AND deleted_at IS NULL`,
+  [id]
+);
+
+if (movieResult.rows.length === 0) {
+  return res.status(404).json({
+    error: 'movie_not_found',
+    message: 'Movie not found.'
+  });
+}
+      if (movieResult.rows[0].status === 'published') {
+  return res.status(409).json({
+    error: 'movie_already_published',
+    message: 'Distribution rights cannot be resubmitted while the movie is published.'
+  });
+}
+      const rightsSubmission = {
+  contentId: id,
+  rightsHolderName: rightsHolderName.trim(),
+  licenseReference: licenseReference.trim(),
+  evidenceUrl: validatedEvidenceUrl.toString(),
+  licenseStartDate,
+  licenseExpiryDate
+};
+      const insertRightsQuery = `
+  INSERT INTO content_rights_reviews (
+    content_id,
+    rights_holder_name,
+    license_reference,
+    evidence_url,
+    license_start_date,
+    license_expiry_date,
+    review_status
+  )
+  VALUES ($1, $2, $3, $4, $5, $6, 'pending_review')
+  RETURNING id, content_id, review_status
+`;
+      const insertRightsValues = [
+  rightsSubmission.contentId,
+  rightsSubmission.rightsHolderName,
+  rightsSubmission.licenseReference,
+  rightsSubmission.evidenceUrl,
+  rightsSubmission.licenseStartDate,
+  rightsSubmission.licenseExpiryDate
+];
+      const saveRightsReview = async () => {
+  const client = await db.connect();
+  try {
+    await client.query('BEGIN');
+const lockedMovie = await client.query(
+  `SELECT id, status
+   FROM content_items
+   WHERE id = $1
+     AND deleted_at IS NULL
+   FOR UPDATE`,
+  [id]
+);
+
+if (lockedMovie.rowCount !== 1 || lockedMovie.rows[0].status === 'published') {
+  throw new Error(
+    'Rights submission not allowed: movie unavailable or published.'
+  );
+}
+    const result = await client.query(
+    insertRightsQuery,
+    insertRightsValues
+  );
+const updateResult = await client.query(
+  `UPDATE content_items
+   SET rights_status = 'pending_review',
+       updated_at = NOW()
+   WHERE id = $1
+     AND deleted_at IS NULL
+     AND status <> 'published'`,
+  [id]
+);
+    if (updateResult.rowCount !== 1) {
+  throw new Error(
+    'Rights submission failed: movie status could not be updated.'
+  );
+}
+    await client.query('COMMIT');
+  return result.rows[0];
+} catch (error) {
+  await client.query('ROLLBACK');
+  throw error;
+} finally {
+  client.release();
+}
+};
+      const savedReview = await saveRightsReview();
+      return res.status(201).json({
+  success: true,
+  message: 'Distribution rights submitted for review.',
+  review: savedReview
+});
+  } catch (error) {
+  return next(error);
+}
+}
+  }
+);
 // Distribution Rights Approval
 router.patch(
   '/admin/content/:id/approve-rights',
